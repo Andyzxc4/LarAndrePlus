@@ -24,6 +24,10 @@ mini-project/
 │   ├── lara.jpg               # Girlfriend's photo (add this)
 │   └── lara.svg               # Placeholder (auto-generated)
 │
+├── generated_media/            # Talking-head outputs (served via /media)
+├── tools/                      # Helper scripts
+│   ├── setup_talking_head.py   # Download SadTalker repo + checkpoints
+│   └── generate_talking_head.py# CLI for video generation
 ├── config.py                   # Configuration settings
 ├── requirements.txt            # Python dependencies
 ├── .gitignore                 # Git ignore rules
@@ -46,6 +50,8 @@ mini-project/
   - `/chat` - Main conversation endpoint
   - `/lara/idle` - Idle timeout comments
   - `/health` - Health check
+  - `/talking-head/status` - SadTalker readiness
+  - `/talking-head` - Generate talking-head video from audio upload
   - Session management
   - CORS middleware
   - Static file serving
@@ -203,7 +209,8 @@ Speak Andre's voice
   ```json
   {
     "message": "string",
-    "session_id": "string"
+    "session_id": "string",
+    "lara_muted": false
   }
   ```
 - **Response**:
@@ -217,6 +224,7 @@ Speak Andre's voice
   ```
 
 ### `GET /lara/idle`
+- **Query**: `lara_muted` (optional) to skip when Lara is disabled
 - **Response**:
   ```json
   {
@@ -231,6 +239,34 @@ Speak Andre's voice
     "status": "healthy",
     "model_loaded": "boolean",
     "active_sessions": "number"
+  }
+  ```
+
+### `GET /talking-head/status`
+- **Response**:
+  ```json
+  {
+    "ready": true,
+    "repo_dir": ".../vendors/SadTalker",
+    "checkpoints_present": true,
+    "device": "mps",
+    "message": "SadTalker ready"
+  }
+  ```
+
+### `POST /talking-head`
+- **Form Fields**:
+  - `character`: `"andre"` or `"lara"`
+  - `audio_file`: `.wav` or `.mp3`
+  - `expression_scale` (optional float)
+  - `still_mode` (optional bool)
+- **Response**:
+  ```json
+  {
+    "character": "lara",
+    "filename": "lara_20241117_153015.mp4",
+    "video_url": "/media/talking_head/lara_20241117_153015.mp4",
+    "device": "mps"
   }
   ```
 

@@ -19,7 +19,8 @@ class LarAndreChatbot {
             voiceSpeed: 1.0,
             voicePitch: 1.0,
             autoSpeak: true,
-            laraInterrupts: true
+            laraInterrupts: true,
+            laraEnabled: true
         };
         
         // DOM elements
@@ -167,7 +168,8 @@ class LarAndreChatbot {
                 },
                 body: JSON.stringify({
                     message: message,
-                    session_id: this.sessionId
+                    session_id: this.sessionId,
+                    lara_muted: !this.settings.laraEnabled
                 })
             });
             
@@ -178,7 +180,7 @@ class LarAndreChatbot {
             const data = await response.json();
             
             // Handle responses based on who speaks first
-            if (data.speaker === 'lara_first' && data.lara_response) {
+            if (data.speaker === 'lara_first' && data.lara_response && this.settings.laraEnabled) {
                 // Lara interrupts first
                 this.updateCharacterStatus('lara', 'Speaking! 😤');
                 await this.addMessage('lara', data.lara_response);
@@ -247,6 +249,7 @@ class LarAndreChatbot {
     
     async speak(text, character = 'andre') {
         if (!this.settings.autoSpeak) return;
+        if (character === 'lara' && !this.settings.laraEnabled) return;
         
         // Cancel any ongoing speech
         this.synthesis.cancel();
@@ -324,7 +327,7 @@ class LarAndreChatbot {
     resetIdleTimer() {
         clearTimeout(this.idleTimer);
         
-        if (!this.settings.laraInterrupts) return;
+        if (!this.settings.laraInterrupts || !this.settings.laraEnabled) return;
         
         this.idleTimer = setTimeout(() => {
             this.handleIdle();
@@ -332,13 +335,17 @@ class LarAndreChatbot {
     }
     
     async handleIdle() {
-        if (this.isSpeaking) {
+        if (this.isSpeaking || !this.settings.laraEnabled) {
             this.resetIdleTimer();
             return;
         }
         
         try {
-            const response = await fetch('/lara/idle');
+            const response = await fetch(`/lara/idle?lara_muted=${!this.settings.laraEnabled}`);
+            if (response.status === 204) {
+                this.updateCharacterStatus('lara', 'Muted 🔇');
+                return;
+            }
             const data = await response.json();
             
             this.updateCharacterStatus('lara', 'Impatient! 😤');
@@ -361,6 +368,7 @@ class LarAndreChatbot {
         const pitchValue = document.getElementById('pitch-value');
         const autoSpeak = document.getElementById('auto-speak');
         const laraInterrupts = document.getElementById('lara-interrupts');
+        const laraMuteToggle = document.getElementById('lara-mute-toggle');
         
         settingsToggle.addEventListener('click', () => {
             settingsPanel.classList.toggle('active');
@@ -389,6 +397,18 @@ class LarAndreChatbot {
                 this.resetIdleTimer();
             } else {
                 clearTimeout(this.idleTimer);
+            }
+        });
+
+        laraMuteToggle.addEventListener('change', (e) => {
+            this.settings.laraEnabled = !e.target.checked;
+            if (this.settings.laraEnabled) {
+                this.updateCharacterStatus('lara', 'Watching...');
+                this.resetIdleTimer();
+            } else {
+                this.synthesis.cancel();
+                clearTimeout(this.idleTimer);
+                this.updateCharacterStatus('lara', 'Muted 🔇');
             }
         });
     }

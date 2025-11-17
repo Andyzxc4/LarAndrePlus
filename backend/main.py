@@ -3,21 +3,25 @@ LarAndre+ Chatbot Backend
 A witty chatbot with dual personalities: Andre (main) and Lara (girlfriend)
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 from contextlib import asynccontextmanager
 import random
 import time
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+import tempfile
+from uuid import uuid4
 
 # Get the project root directory
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MEDIA_DIR = os.path.join(BASE_DIR, "generated_media")
+os.makedirs(MEDIA_DIR, exist_ok=True)
 
 # Load environment variables from .env file in project root
 env_path = os.path.join(BASE_DIR, '.env')
@@ -27,9 +31,11 @@ print(f"📁 Project root: {BASE_DIR}")
 print(f"🔑 API key loaded: {'Yes' if os.getenv('GEMINI_API_KEY') else 'No'}")
 
 from chatbot_engine import ChatbotEngine
+from talking_head_service import TalkingHeadService
 
 # Initialize chatbot engine
 chatbot = ChatbotEngine()
+talking_head_service = TalkingHeadService(project_root=BASE_DIR, media_dir_name="generated_media")
 
 # Store conversation history per session
 conversation_sessions = {}
@@ -57,12 +63,20 @@ app.add_middleware(
 class MessageRequest(BaseModel):
     message: str
     session_id: str = "default"
+    lara_muted: bool = False
 
 class ChatResponse(BaseModel):
     andre_response: str
     lara_response: Optional[str] = None
     lara_interrupts: bool = False
     speaker: str  # "andre" or "lara_first"
+
+
+class TalkingHeadResponse(BaseModel):
+    character: str
+    filename: str
+    video_url: str
+    device: str
 
 @app.get("/")
 async def root():
@@ -95,6 +109,7 @@ async def chat(request: MessageRequest):
         lara_interrupts = False
         lara_is_mad = False
         speaker = "andre"
+        lara_disabled = request.lara_muted
         
         # Lara interrupts if:
         # 1. User says something bad about Lara (she gets MAD)
@@ -144,35 +159,36 @@ async def chat(request: MessageRequest):
             ]
         )
         
-        if any(phrase in message_lower for phrase in negative_about_lara) or lara_is_negative_pattern:
-            # Lara gets GENUINELY MAD - different from jealousy
-            lara_response = await chatbot.generate_lara_mad_response(message)
-            lara_interrupts = True
-            lara_is_mad = True
-            speaker = "lara_first"
-            session["lara_interrupt_count"] += 1
-        else:
-            # Check for celebrity names
-            mentions_celebrity = any(celeb in message_lower for celeb in celebrity_names)
-            
-            # Check for regular girl names
-            mentions_other_girl = any(name in message_lower for name in girl_names)
-            
-            random_interrupt = random.random() < 0.10  # 10% chance
-            
-            if mentions_celebrity:
-                # Celebrity mentioned - Andre responds casually, Lara doesn't get jealous
-                pass  # Just let Andre handle it normally
-            elif mentions_other_girl:
-                # Regular girl name mentioned - Lara gets jealous!
-                lara_response = await chatbot.generate_lara_jealous_response(message)
+        if not lara_disabled:
+            if any(phrase in message_lower for phrase in negative_about_lara) or lara_is_negative_pattern:
+                # Lara gets GENUINELY MAD - different from jealousy
+                lara_response = await chatbot.generate_lara_mad_response(message)
                 lara_interrupts = True
+                lara_is_mad = True
                 speaker = "lara_first"
                 session["lara_interrupt_count"] += 1
-            elif random_interrupt and len(session["history"]) > 2:
-                lara_response = await chatbot.generate_lara_playful_comment()
-                lara_interrupts = True
-                speaker = "lara_first"
+            else:
+                # Check for celebrity names
+                mentions_celebrity = any(celeb in message_lower for celeb in celebrity_names)
+                
+                # Check for regular girl names
+                mentions_other_girl = any(name in message_lower for name in girl_names)
+                
+                random_interrupt = random.random() < 0.10  # 10% chance
+                
+                if mentions_celebrity:
+                    # Celebrity mentioned - Andre responds casually, Lara doesn't get jealous
+                    pass  # Just let Andre handle it normally
+                elif mentions_other_girl:
+                    # Regular girl name mentioned - Lara gets jealous!
+                    lara_response = await chatbot.generate_lara_jealous_response(message)
+                    lara_interrupts = True
+                    speaker = "lara_first"
+                    session["lara_interrupt_count"] += 1
+                elif random_interrupt and len(session["history"]) > 2:
+                    lara_response = await chatbot.generate_lara_playful_comment()
+                    lara_interrupts = True
+                    speaker = "lara_first"
         
         # Generate Andre's response
         # Pass lara_is_mad flag so Andre knows to calm things down
@@ -204,20 +220,22 @@ async def chat(request: MessageRequest):
         
         return ChatResponse(
             andre_response=andre_response,
-            lara_response=lara_response,
-            lara_interrupts=lara_interrupts,
-            speaker=speaker
+            lara_response=None if lara_disabled else lara_response,
+            lara_interrupts=False if lara_disabled else lara_interrupts,
+            speaker="andre" if lara_disabled else speaker
         )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing chat: {str(e)}")
 
 @app.get("/lara/idle")
-async def lara_idle_comment():
+async def lara_idle_comment(lara_muted: bool = False):
     """
     Endpoint for when user is idle/quiet
     Returns a playful comment from Lara (DYNAMICALLY GENERATED)
     """
+    if lara_muted:
+        raise HTTPException(status_code=204, detail="Lara responses are muted.")
     # Generate dynamic idle comment
     comment = await chatbot.generate_lara_playful_comment()
     return {"comment": comment}
@@ -341,7 +359,58 @@ async def health():
         "active_sessions": len(conversation_sessions)
     }
 
+
+@app.get("/talking-head/status")
+async def talking_head_status():
+    """Expose SadTalker readiness + device info."""
+    status = talking_head_service.status()
+    return status.__dict__
+
+
+@app.post("/talking-head", response_model=TalkingHeadResponse)
+async def talking_head(
+    character: str = Form(..., description="andre or lara"),
+    audio_file: UploadFile = File(..., description="TTS output .wav or .mp3"),
+    expression_scale: float = Form(1.0),
+    still_mode: bool = Form(True),
+):
+    """Generate a short talking-head video using SadTalker."""
+    if audio_file.content_type not in {"audio/mpeg", "audio/wav", "audio/x-wav", "audio/mp3"}:
+        raise HTTPException(status_code=400, detail="Please upload a .wav or .mp3 audio file.")
+
+    suffix = (
+        ".mp3"
+        if audio_file.filename and audio_file.filename.lower().endswith(".mp3")
+        else ".wav"
+    )
+    temp_audio = os.path.join(tempfile.gettempdir(), f"talking_head_{uuid4().hex}{suffix}")
+
+    try:
+        with open(temp_audio, "wb") as f:
+            f.write(await audio_file.read())
+
+        video_path = talking_head_service.generate_video(
+            character=character,
+            audio_path=temp_audio,
+            expression_scale=expression_scale,
+            still_mode=still_mode,
+        )
+
+        video_filename = os.path.basename(video_path)
+        video_url = f"/media/talking_head/{video_filename}"
+
+        return TalkingHeadResponse(
+            character=character.lower(),
+            filename=video_filename,
+            video_url=video_url,
+            device=talking_head_service.device,
+        )
+    finally:
+        if os.path.exists(temp_audio):
+            os.remove(temp_audio)
+
 # Mount static files for frontend
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "frontend", "static")), name="static")
 app.mount("/faces", StaticFiles(directory=os.path.join(BASE_DIR, "faces")), name="faces")
+app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 

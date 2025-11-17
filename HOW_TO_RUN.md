@@ -5,7 +5,7 @@
 ### Method 1: Using the Simple Runner (Recommended)
 
 ```bash
-cd /Users/andre-d.lacra/ai-native-projects/mini-project
+cd /Users/lara/dre-proj-git/LarAndrePlus
 source venv/bin/activate
 python run_server.py
 ```
@@ -15,7 +15,7 @@ Then open your browser to: **http://127.0.0.1:8000**
 ### Method 2: Using the Start Script
 
 ```bash
-cd /Users/andre-d.lacra/ai-native-projects/mini-project
+cd /Users/lara/dre-proj-git/LarAndrePlus
 source venv/bin/activate
 ./start.sh
 ```
@@ -25,12 +25,38 @@ Then open your browser to: **http://127.0.0.1:8000**
 ### Method 3: Manual Start
 
 ```bash
-cd /Users/andre-d.lacra/ai-native-projects/mini-project/backend
+cd /Users/lara/dre-proj-git/LarAndrePlus/backend
 source ../venv/bin/activate
 python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 Then open your browser to: **http://127.0.0.1:8000**
+
+---
+
+## First-Time Setup on this Mac
+
+1. **Install prerequisites**
+   ```bash
+   xcode-select --install         # if you haven't already
+   brew install git ffmpeg        # ffmpeg powers SadTalker video writes
+   ```
+2. **Clone + create your environment**
+   ```bash
+   git clone <repo-url>/LarAndrePlus.git /Users/lara/dre-proj-git/LarAndrePlus
+   cd /Users/lara/dre-proj-git/LarAndrePlus
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
+3. **Prep SadTalker assets (only if you need talking-head videos)**
+   ```bash
+   python tools/setup_talking_head.py
+   ```
+4. **Run the server (pick any quick-start method above)**
+
+Need CPU-only mode? Set `export TALKING_HEAD_DEVICE=cpu` before starting.
 
 ---
 
@@ -154,11 +180,12 @@ Subsequent runs are faster since the model is cached.
 
 ## Your Setup
 
-**Project**: `/Users/andre-d.lacra/ai-native-projects/mini-project`  
-**Python**: 3.13.7  
-**AI Model**: DistilGPT2 (lightweight, optimized for M4)  
+**Project**: `/Users/lara/dre-proj-git/LarAndrePlus`  
+**Python**: 3.12+ recommended  
+**AI Model**: Llama 3.2 via Ollama (local)  
+**Talking-Head**: SadTalker (PyTorch w/ MPS or CPU fallback)  
 **GPU**: MPS (Metal Performance Shaders) ✅  
-**Images**: Andre.JPG ✅, Lara.png ✅
+**Images**: `faces/Andre.JPG`, `faces/Lara.png`
 
 ---
 

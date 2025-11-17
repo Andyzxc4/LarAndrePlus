@@ -8,6 +8,18 @@ python-dotenv==1.2.1
 # Ollama for local Llama models (FREE!)
 ollama==0.4.4
 
+# Talking-head + media generation (SadTalker helpers)
+torch==2.5.1
+torchvision==0.20.1
+torchaudio==2.5.1
+numpy==1.26.4
+scipy==1.11.4
+opencv-python==4.10.0.84
+imageio==2.36.0
+imageio-ffmpeg==0.5.2
+ffmpeg-python==0.2.0
+pydub==0.25.1
+
 # Optional: Google Gemini (if you want to switch back)
 # google-generativeai==0.8.3
 

@@ -9,6 +9,7 @@ LarAndre+ is a unique chatbot application where you can interact with Andre (the
 - 🗣️ **Voice Interaction**: Speak to the chatbot and hear responses in different voices
 - 🤖 **Dual Personalities**: Andre provides helpful, witty responses while Lara adds playful interruptions
 - 🎭 **Animated Characters**: Visual feedback with character animations during speech
+- 🎬 **Talking-Head Videos**: Generate SadTalker videos from a static face + TTS audio (runs on MPS or CPU)
 - 🧠 **Powered by AI**: Uses Hugging Face's DistilGPT2 for natural language processing
 - ⚡ **Optimized for M4**: Runs efficiently on Apple Silicon (MacBook Pro M4)
 
@@ -31,6 +32,7 @@ LarAndre+ is a unique chatbot application where you can interact with Andre (the
 - **Backend**: FastAPI (Python)
 - **Frontend**: HTML5, CSS3, Vanilla JavaScript
 - **AI/NLP**: Hugging Face Transformers (DistilGPT2)
+- **Talking-Head Animation**: SadTalker (PyTorch w/ MPS + CPU fallback)
 - **Voice**: Web Speech API (Speech Recognition + Speech Synthesis)
 - **Optimization**: PyTorch with Metal Performance Shaders (MPS) for M4
 
@@ -67,7 +69,8 @@ mini-project/
 
 1. **Clone or navigate to the project directory**:
    ```bash
-   cd /Users/andre-d.lacra/ai-native-projects/mini-project
+   git clone <your-github-url>/LarAndrePlus.git /Users/lara/dre-proj-git/LarAndrePlus
+   cd /Users/lara/dre-proj-git/LarAndrePlus
    ```
 
 2. **Create a virtual environment**:
@@ -88,14 +91,50 @@ mini-project/
 
 5. **Run the application**:
    ```bash
-   cd backend
-   uvicorn main:app --reload --host 0.0.0.0 --port 8000
+   python run_server.py
    ```
 
 6. **Open in browser**:
    ```
    http://localhost:8000
    ```
+
+## Running Locally on a New Mac (MPS or CPU)
+
+1. **Install prerequisites**
+   ```bash
+   xcode-select --install          # command-line tools (once)
+   brew install ffmpeg git         # ffmpeg needed for SadTalker output
+   ```
+2. **Clone + create a virtual environment**
+   ```bash
+   git clone <repo-url> /Users/lara/dre-proj-git/LarAndrePlus
+   cd /Users/lara/dre-proj-git/LarAndrePlus
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
+3. **Prepare SadTalker assets (optional unless you need videos)**
+   ```bash
+   python tools/setup_talking_head.py
+   ```
+4. **(Optional) Force CPU mode**
+   ```bash
+   export TALKING_HEAD_DEVICE=cpu
+   export PYTORCH_ENABLE_MPS_FALLBACK=1
+   ```
+5. **Run the server**
+   ```bash
+   python run_server.py
+   ```
+6. **Hit the health & talking-head endpoints**
+   ```bash
+   curl http://localhost:8000/health
+   curl http://localhost:8000/talking-head/status
+   ```
+
+The same steps work on Intel Macs—the talking-head pipeline will automatically fall back to CPU without any NVIDIA hardware.
 
 ## Usage
 
@@ -116,6 +155,41 @@ mini-project/
   - Voice pitch
   - Auto-speak toggle
   - Lara's interruptions toggle
+  - Lara mute toggle (completely silence Lara without disabling Andre)
+
+## Talking-Head Generator (SadTalker)
+
+Bring Andre or Lara to life by pairing any TTS audio clip with their static portrait.
+
+1. **Install / update dependencies**
+   ```bash
+   cd /Users/lara/dre-proj-git/LarAndrePlus
+   python3 -m venv venv && source venv/bin/activate  # or reuse your env
+   pip install -r requirements.txt
+   ```
+2. **Download SadTalker assets once**
+   ```bash
+   python tools/setup_talking_head.py
+   ```
+3. **Generate a video via CLI**
+   ```bash
+   python tools/generate_talking_head.py \
+       --character lara \
+       --audio /path/to/lara-tts.wav
+   ```
+   Videos land in `generated_media/talking_head/` and are automatically served at  
+   `http://localhost:8000/media/talking_head/<filename>.mp4`.
+4. **Or call the FastAPI endpoint**
+   ```bash
+   curl -X POST http://localhost:8000/talking-head \
+     -F "character=andre" \
+     -F "expression_scale=1.0" \
+     -F "audio_file=@/path/to/andre.wav"
+   ```
+
+The backend auto-detects Apple Metal (MPS) support and falls back to CPU if needed. You can override with `export TALKING_HEAD_DEVICE=cpu` (or `mps`).
+
+➡️ Need more detail? See `TALKING_HEAD_SETUP.md`.
 
 ## Personality Logic
 
