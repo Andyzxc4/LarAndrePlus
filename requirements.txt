@@ -1,0 +1,13 @@
+# Core dependencies for LarAndre+ Chatbot
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+python-multipart==0.0.20
+python-dotenv==1.2.1
+
+# Ollama for local Llama models (FREE!)
+ollama==0.4.4
+
+# Optional: Google Gemini (if you want to switch back)
+# google-generativeai==0.8.3
+

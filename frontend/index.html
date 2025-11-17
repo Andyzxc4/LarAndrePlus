@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LarAndre+ | Your Witty AI Companion</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="logo">LarAndre<span class="plus">+</span></h1>
+            <p class="tagline">Your Witty AI Companions</p>
+        </header>
+
+        <!-- Character Display Area -->
+        <div class="characters-section">
+            <div class="character-container" id="andre-container">
+                <div class="character-frame" id="andre-frame">
+                    <img src="/faces/Andre.JPG" alt="Andre" id="andre-face" class="character-face" 
+                         onerror="this.onerror=null; this.src='/faces/andre.jpg'; this.onerror=function(){this.src='/faces/andre.svg'};">
+                    <div class="speech-indicator" id="andre-indicator"></div>
+                </div>
+                <div class="character-name">Andre</div>
+                <div class="character-status" id="andre-status">Ready</div>
+            </div>
+
+            <div class="character-container" id="lara-container">
+                <div class="character-frame" id="lara-frame">
+                    <img src="/faces/Lara.png" alt="Lara" id="lara-face" class="character-face"
+                         onerror="this.onerror=null; this.src='/faces/lara.jpg'; this.onerror=function(){this.src='/faces/lara.svg'};">
+                    <div class="speech-indicator" id="lara-indicator"></div>
+                </div>
+                <div class="character-name">Lara</div>
+                <div class="character-status" id="lara-status">Watching...</div>
+            </div>
+        </div>
+
+        <!-- Chat Display Area -->
+        <div class="chat-section">
+            <div class="chat-container" id="chat-container">
+                <div class="chat-message system">
+                    <div class="message-content">
+                        <p>👋 Hey there! I'm Andre, and this is my girlfriend Lara. Feel free to ask me anything!</p>
+                        <p class="lara-whisper">🙄 <em>And I'm watching everything you say...</em></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Controls -->
+        <div class="input-section">
+            <div class="input-container">
+                <textarea 
+                    id="user-input" 
+                    placeholder="Ask me anything... or use voice 🎤"
+                    rows="2"
+                ></textarea>
+                <div class="input-controls">
+                    <button id="voice-btn" class="voice-btn" title="Click to speak">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                            <line x1="12" y1="19" x2="12" y2="23"></line>
+                            <line x1="8" y1="23" x2="16" y2="23"></line>
+                        </svg>
+                    </button>
+                    <button id="send-btn" class="send-btn">Send</button>
+                </div>
+            </div>
+            <div class="voice-status" id="voice-status"></div>
+        </div>
+
+        <!-- Settings Panel -->
+        <div class="settings-toggle" id="settings-toggle">⚙️</div>
+        <div class="settings-panel" id="settings-panel">
+            <h3>Settings</h3>
+            <div class="setting-item">
+                <label for="voice-speed">Voice Speed:</label>
+                <input type="range" id="voice-speed" min="0.5" max="2" step="0.1" value="1">
+                <span id="speed-value">1.0x</span>
+            </div>
+            <div class="setting-item">
+                <label for="voice-pitch">Voice Pitch:</label>
+                <input type="range" id="voice-pitch" min="0" max="2" step="0.1" value="1">
+                <span id="pitch-value">1.0x</span>
+            </div>
+            <div class="setting-item">
+                <label>
+                    <input type="checkbox" id="auto-speak" checked>
+                    Auto-speak responses
+                </label>
+            </div>
+            <div class="setting-item">
+                <label>
+                    <input type="checkbox" id="lara-interrupts" checked>
+                    Enable Lara's interruptions
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
+
